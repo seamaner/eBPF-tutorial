@@ -1,4 +1,5 @@
 load:
+bpf_prog_load
     bpf_check
         bpf_verifier_ops
         check_cfg                //深度优先
@@ -44,7 +45,7 @@ __bpf_prog_runxx函数也是宏定义的,几个函数区别只是stack的大小,
 1749     return ___bpf_prog_run(regs, insn); \
 1750 }
 ```
-FP、ARG1都是named register，FP是栈顶指针，初始执行栈顶stack最大地址，FP也是往下增长的。
+FP、ARG1都是named register，FP是栈顶指针，初始化为栈顶stack尾部，因此FP也是往下增长的。
 ```
 #define FP  regs[BPF_REG_FP]
 #define ARG1    regs[BPF_REG_ARG1]
@@ -60,3 +61,15 @@ static unsigned int __bpf_prog_run32(const void *ctx, const struct bpf_insn *ins
     return ___bpf_prog_run(regs, insn); 
 }
 ```
+函数___bpf_prog_run在上述给定的context(stack, regs)下执行所有insn指令,
+```
+#define CONT     ({ insn++; goto select_insn; })
+#define CONT_JMP ({ insn++; goto select_insn; })
+
+select_insn:
+    goto *jumptable[insn->code];
+```
+`jumptable`用GNU扩展[&&](https://gcc.gnu.org/onlinedocs/gcc/Labels-as-Values.html)定义了每个指令的跳转位置，比如，`[BPF_JMP | BPF_TAIL_CALL] = &&JMP_TAIL_CALL,`。
+每条指令执行完都调用`CONT`，返回到label select_insn处，接着跳转到下一条指令的执行代码，直至程序退出或执行或所有指令。
+`___bpf_prog_run`使用`goto`代替`while - switch`实现循环，据说是用`goto`可以提高15%~20%的性能。
+
