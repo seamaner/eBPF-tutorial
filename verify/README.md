@@ -9,7 +9,8 @@ load:
     sanitize_dead_code
 
     bpf_prog_select_runtime 
-        bpf_prog_select_func
+        bpf_prog_select_func  //从interpreters中找到fp->bpf_func = interpreters[(round_up(stack_depth, 32) / 32) - 1];
+interpreters函数最后都是调的__bpf_prog_run,差别只在于stack大小。
 
 interpreters
 ```
@@ -29,8 +30,10 @@ __bpf_prog_run224, __bpf_prog_run256, __bpf_prog_run288, __bpf_prog_run320, __bp
 __bpf_prog_run416, __bpf_prog_run448, __bpf_prog_run480, __bpf_prog_run512,
 };
 ```
-__bpf_prog_runxx函数也是宏定义的：
+__bpf_prog_runxx函数也是宏定义的,几个函数区别只是stack的大小, 最终都是调用__bpf_prog_run:
 ```
+1740 #define PROG_NAME(stack_size) __bpf_prog_run##stack_size
+1741 #define DEFINE_BPF_PROG_RUN(stack_size) \
 1742 static unsigned int PROG_NAME(stack_size)(const void *ctx, const struct bpf_insn *insn) \
 1743 { \
 1744     u64 stack[stack_size / sizeof(u64)]; \
@@ -41,7 +44,7 @@ __bpf_prog_runxx函数也是宏定义的：
 1749     return ___bpf_prog_run(regs, insn); \
 1750 }
 ```
-FP、ARG1都是named register，FP是栈顶指针，
+FP、ARG1都是named register，FP是栈顶指针，初始执行栈顶stack最大地址，FP也是往下增长的。
 ```
 #define FP  regs[BPF_REG_FP]
 #define ARG1    regs[BPF_REG_ARG1]
