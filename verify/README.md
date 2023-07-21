@@ -175,4 +175,19 @@ arch/x86/net/bpf_jit_comp.c
 2260
 
 ```
+JIT之后,bpf_func会被替换掉：
+```
+arch/x86/net/bpf_jit_comp.c
+        prog->bpf_func = (void *)image;
+        prog->jited = 1;
+        prog->jited_len = proglen;
+```
 
+## 运行
+
+以kprobe为例，
+```
+trace_call_bpf
+bpf_prog_run
+bpf_dispatcher_nop_func(ctx, prog->insnsi, prog->bpf_func)
+```
