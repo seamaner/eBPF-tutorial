@@ -68,5 +68,17 @@ ls -alh our-small-btf
 -rw-r--r-- 1 root root 212 Aug  7 06:18 our-small-btf
 ```
 
+## 相关操作
+
+- BPF_BTF_LOAD：bpf syscall cmd。btf文件信息加载到内核。
+- btf_fops：内核fd fops。
+- btf_prepare_func_args
+- btf_parse: verify并解析成struct btf;结构。BTF_MAGIC: 0xeb9f:
+```
+od -x our-small-btf
+0000000 eb9f 0001 0018 0000 0000 0000 0074 0000
+0000020 0074 0000 0048 0000 0001 0000 0000 0100
+```
+
 参考文献：
 https://opensource.com/article/22/9/ebpf-monitor-traffic-tracee
