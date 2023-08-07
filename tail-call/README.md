@@ -71,7 +71,7 @@ Program received signal SIGSEGV, Segmentation fault.
 ```
 可以看到程序执行到92469次，栈溢出sement fault退出。
 
-函数的最后一行是函数调用，由于调用返回后会接着返回，因此当前函数栈frame不需要保存，call可以优化成jmp。
+函数的最后一行是函数调用，由于调用返回后会接着返回，因此当前函数栈frame不需要保存，call可以优化成jmp。  
 call相当于，push ret-address + jump ， 优化后省掉了压栈操作。这样Tail-call达到了栈不增长的效果。
 gcc -O3优化后，可以看到call被优化掉：
 ```
