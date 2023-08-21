@@ -92,3 +92,7 @@ bpf通过helper函数bpf_perf_event_output将trace数据写入map：
 
 对PERF_EVENT_ARRAY_MAP来说，通过MAP的api(helper函数和update_map_elem)在eBPF内核和用户空间之间传递perf_buf的标识，起的是控制通道的作用，数据传输主要还是通过共享内存。  
 
+## rlimit_memlock
+
+创建eBPF MAP时，会在内核内分配MAP使用的内存，这些内存是驻留在内核的（相当于memlock， 关闭了swap），创建时检查创建者user也就是用户空间程序是否有权限使用这么多“MemLock”内存。
+
