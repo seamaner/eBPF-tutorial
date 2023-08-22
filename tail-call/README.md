@@ -147,3 +147,18 @@ fib(10000000) is 8644293272739028509
               Return 0 on success, or a negative error in case of
                      failure.
 ```
+
+被调用的函数执行完，函数返回到哪里？
+相当于从调用bpf_tail_call helper函数的地方直接返回了，上上一层函数的地方接着往下执行。
+A:
+A1: cod1
+A2: code2
+A3: call B
+A4: code 4
+
+B:
+B1: code 1
+B2: tail_call C
+B3: code
+
+B2: tail_call c成功后，B3不会再执行，执行流返回到A4继续执行。
