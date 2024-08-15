@@ -1,8 +1,8 @@
-## 什么是Tail-call
-"tail-call"（尾调用）是指一个函数在执行结束时，最后一步调用的是另一个函数，且该调用的返回值直接作为当前函数的返回值。简单来说，就是当前函数的最后一步是调用另一个函数，并将该函数的返回值返回给当前函数的调用者，而不需要在当前函数中进行其他的操作。
+## 什么是Tail-call  
+"tail-call"（尾调用）是指一个函数在执行结束时，最后一步调用的是另一个函数，且该调用的返回值直接作为当前函数的返回值。简单来说，就是当前函数的最后一步是调用另一个函数，并将该函数的返回值返回给当前函数的调用者，而不需要在当前函数中进行其他的操作。  
 
-尾调用优化是一种编译器优化技术，它可以在某些情况下避免在函数调用时创建新的栈帧，从而减少函数调用的开销和内存消耗。这种优化通常在函数嵌套调用较深或需要进行递归计算时会带来明显的性能提升。
-看一个C语言计算斐波那契数列的例子。
+尾调用优化是一种编译器优化技术，它可以在某些情况下避免在函数调用时创建新的栈帧，从而减少函数调用的开销和内存消耗。这种优化通常在函数嵌套调用较深或需要进行递归计算时会带来明显的性能提升。  
+看一个C语言计算斐波那契数列的例子。  
 ```
 #include <stdint.h>
 
@@ -26,7 +26,7 @@ int main()
     printf("fib(%d) is %d\n", 10000000, n);
 }
 ```
-使用`gcc -c fib.c -o fib.o`编译，查看汇编代码（使用`objdump -d fib.o`），可以看到fib函数调用fib_tail(`call 0 <fib_tail>`):
+使用`gcc -c fib.c -o fib.o`编译，查看汇编代码（使用`objdump -d fib.o`），可以看到fib函数调用fib_tail(`call 0 <fib_tail>`):  
 
 ```
 0000000000000000 <fib_tail>:
@@ -69,11 +69,11 @@ Program received signal SIGSEGV, Segmentation fault.
 (gdb) bt -1
 #92469 0x000055555555519d in fib_tail ()
 ```
-可以看到程序执行到92469次，栈溢出sement fault退出。
+可以看到程序执行到92469次，栈溢出sement fault退出。  
 
 函数的最后一行是函数调用，由于调用返回后会接着返回，因此当前函数栈frame不需要保存，call可以优化成jmp。  
 call相当于，push ret-address + jump ， 优化后省掉了压栈操作。这样Tail-call达到了栈不增长的效果。
-gcc -O3优化后，可以看到call被优化掉：
+gcc -O3优化后，可以看到call被优化掉, 汇编代码中没有了` call   0 <fib_tail>`这样的指令：  
 ```
 fib.o:     file format elf64-x86-64
 
@@ -100,7 +100,7 @@ Disassembly of section .text:
   38:   41 b8 01 00 00 00       mov    $0x1,%r8d
   3e:   eb f4                   jmp    34 <fib+0x34>
 ```
-优化后的fib可以正常运行，计算出结果：
+优化后的fib可以正常运行，不会stack溢出崩溃掉，最终计算出结果：  
 ```
 gcc fib.c -O3 -o fib.o3
  ./fib.o3
@@ -148,17 +148,25 @@ fib(10000000) is 8644293272739028509
                      failure.
 ```
 
-被调用的函数执行完，函数返回到哪里？
-相当于从调用bpf_tail_call helper函数的地方直接返回了，上上一层函数的地方接着往下执行。
+被调用的函数执行完，函数返回到哪里？  
+相当于从调用bpf_tail_call helper函数的地方直接返回了，上上一层函数的地方接着往下执行。  
+```
 A:
-A1: cod1
-A2: code2
+A1: codeA1
+A2: codeA2
 A3: call B
-A4: code 4
+A4: codeA4
 
 B:
-B1: code 1
+B1: codeB1
 B2: tail_call C
-B3: code
+B3: codeB3
 
-B2: tail_call c成功后，B3不会再执行，执行流返回到A4继续执行。
+C:
+C1: codeC1
+C2: codeC2   -- ret
+```  
+`B2: tail_call c`成功后，B3不会再执行，执行流返回到A4继续执行。  
+执行的代码是：   
+`A1 -> A2 -> A3(call B) -> B1 -> B2(tailcall C) -> C1 -> C2(ret) ->A4`  
+注意因为tailcall的缘故，B3没有执行。  
