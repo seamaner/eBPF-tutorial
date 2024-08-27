@@ -192,3 +192,5 @@ trace_call_bpf
 bpf_prog_run
 bpf_dispatcher_nop_func(ctx, prog->insnsi, prog->bpf_func)
 ```
+# 参考资料
+[A look inside the BPF verifier](https://lwn.net/Articles/982077/)
